@@ -1,0 +1,13 @@
+# .gitignore
+.env
+*.log
+.DS_Store
+tmp/
+.idea/
+.vscode/
+vendor/
+*.out
+*.exe
+*.test
+.env*
+!.env.example
