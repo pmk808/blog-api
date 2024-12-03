@@ -1,61 +1,101 @@
-Blog API Project Overview:
+# Blog API Project Overview
 
-Structure:
+A lightweight, efficient blog API backend with built-in content management capabilities.
+
+## Project Structure
 ```
 blog-api/
 ├── cmd/
-│   └── server/
+│   └── api/
 │       └── main.go           // Application entry point
 ├── internal/
-│   ├── api/
-│   │   ├── handlers/         // HTTP request handlers
-│   │   └── middleware/       // Auth, logging middleware
-│   ├── models/              // Database models
-│   ├── repository/          // Database operations
-│   └── service/             // Business logic
-├── pkg/
-│   ├── database/            // DB connection, migrations 
-│   └── utils/               // Helper functions
-├── config/                  // Configuration files
-└── migrations/              // SQL migrations
+│   ├── handler/             // HTTP handlers
+│   │   ├── post.go
+│   │   └── create.go        // Post creation handler
+│   ├── storage/             // Database operations
+│   │   ├── post.go
+│   │   └── db.go           // Database connection and queries
+│   └── model/              // Data models
+│       └── post.go         // Post model definition
+├── migrations/             // SQL migrations
+└── ui/                     // Content management interface
+    └── index.html         // Markdown editor
 ```
 
-Features:
-1. Blog Post Management
-   - CRUD operations
-   - Post status (draft/published)
-   - Tags/categories
-   - Search functionality
+## Features
 
-2. Authentication
-   - JWT-based auth
-   - Admin/author roles
-   - Protected routes
+1. Blog Post Management
+   - Create, read, update, delete operations
+   - Draft/published status support
+   - Tag support
+   - Full-text search capability
+   - Markdown content support
+   - Rich text preview
+
+2. API Security
+   - Secure endpoints for content management
+   - Protected routes for modifications
+   - Environment-based configuration
 
 3. Database
-   - PostgreSQL
-   - GORM for ORM
-   - Migrations support
+   - PostgreSQL for reliable data storage
+   - SQL migrations support
+   - Efficient querying and indexing
 
-4. API Endpoints:
+4. API Endpoints
 ```
 GET    /api/posts       // List posts
-GET    /api/posts/:id   // Single post
-POST   /api/posts       // Create post
-PUT    /api/posts/:id   // Update post
-DELETE /api/posts/:id   // Delete post
-GET    /api/tags        // List tags
-POST   /api/auth/login  // Login
+GET    /api/posts/:slug // Get single post
+POST   /create         // Create post
+PUT    /posts/:slug    // Update post
+DELETE /posts/:slug    // Delete post
+GET    /api/tags       // List all tags
 ```
 
-Tech Stack:
+## Tech Stack
 - Go 1.21+
-- Fiber framework
-- GORM
 - PostgreSQL
-- JWT
+- Chi router
+- Native `database/sql`
+- Server-side Markdown parsing
 
-Deployment:
+## Content Management
+- Built-in Markdown editor
+- Real-time preview
+- Tag management
+- Draft/publish functionality
+- Direct content posting
+
+## Deployment
 - Fly.io for hosting
 - PostgreSQL on Fly.io
-- CI/CD with GitHub Actions
+- GitHub Actions for CI/CD
+
+## Getting Started
+
+1. Prerequisites
+   - Go 1.21 or higher
+   - PostgreSQL 14+
+   - Make (optional, for using Makefile commands)
+
+2. Configuration
+   ```bash
+   # Set required environment variables
+   export DATABASE_URL=postgresql://user:pass@localhost:5432/blogdb
+   export BLOG_API_KEY=your-secret-key
+   ```
+
+3. Running Locally
+   ```bash
+   # Start the server
+   go run cmd/api/main.go
+   ```
+
+4. Development
+   ```bash
+   # Run migrations
+   make migrate-up
+
+   # Run tests
+   make test
+   ```
