@@ -1,3 +1,5 @@
+-- migrations/001_initial_schema.sql
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

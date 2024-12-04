@@ -12,12 +12,36 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 	"github.com/pmk808/blog-api/internal/handler"
 	"github.com/pmk808/blog-api/internal/storage"
 	custommiddleware "github.com/pmk808/blog-api/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
+// @title           Blog API
+// @version         1.0
+// @description     API for managing technical blog content
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   Your Name
+// @contact.url    http://your-url.com
+// @contact.email  your@email.com
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api/v1
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found")
+	}
 	// Initialize database
 	db, err := storage.NewDB()
 	if err != nil {
@@ -43,6 +67,10 @@ func main() {
 	r.Use(middleware.SetHeader("Access-Control-Allow-Origin", "*"))
 	r.Use(middleware.SetHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"))
 	r.Use(middleware.SetHeader("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-API-Key"))
+
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+	))
 
 	// Public routes
 	r.Route("/api", func(r chi.Router) {
