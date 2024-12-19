@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
+	_ "github.com/pmk808/blog-api/docs"
 	"github.com/pmk808/blog-api/internal/handler"
 	"github.com/pmk808/blog-api/internal/storage"
 	custommiddleware "github.com/pmk808/blog-api/middleware"
@@ -42,6 +43,8 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found")
 	}
+
+	log.Printf("API Key from env: %s", os.Getenv("BLOG_API_KEY"))
 	// Initialize database
 	db, err := storage.NewDB()
 	if err != nil {
@@ -69,7 +72,10 @@ func main() {
 	r.Use(middleware.SetHeader("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-API-Key"))
 
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"),
+		httpSwagger.URL("/swagger/doc.json"),
+		httpSwagger.DeepLinking(true),
+		httpSwagger.DocExpansion("none"),
+		httpSwagger.DomID("swagger-ui"),
 	))
 
 	// Public routes
