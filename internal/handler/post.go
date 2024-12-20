@@ -22,17 +22,6 @@ func NewPostHandler(store *storage.PostStore) *PostHandler {
 	}
 }
 
-// ListPosts godoc
-// @Summary List blog posts
-// @Description Get a paginated list of blog posts
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(10)
-// @Success 200 {array} model.Post
-// @Failure 500 {object} model.ErrorResponse
-// @Router /posts [get]
 func (h *PostHandler) ListPosts(w http.ResponseWriter, r *http.Request) {
 	// Get pagination parameters
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
@@ -54,19 +43,6 @@ func (h *PostHandler) ListPosts(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, posts, http.StatusOK)
 }
 
-// UpdatePost godoc
-// @Summary Update a blog post
-// @Description Update a blog post and its sections by slug
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param slug path string true "Post slug"
-// @Param post body model.PostUpdate true "Post update object"
-// @Success 200 {object} model.Post
-// @Failure 400 {object} model.ErrorResponse
-// @Failure 404 {object} model.ErrorResponse
-// @Failure 500 {object} model.ErrorResponse
-// @Router /admin/posts/{slug} [put]
 func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {
@@ -94,17 +70,6 @@ func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, post, http.StatusOK)
 }
 
-// CreatePost godoc
-// @Summary Create a new blog post
-// @Description Create a new blog post with all its sections
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param post body model.PostCreate true "Post object"
-// @Success 201 {object} model.Post
-// @Failure 400 {object} model.ErrorResponse
-// @Failure 500 {object} model.ErrorResponse
-// @Router /admin/posts [post]
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	var input model.PostCreate
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -127,17 +92,6 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, post, http.StatusCreated)
 }
 
-// GetPost godoc
-// @Summary Get a blog post by slug
-// @Description Get a blog post and all its sections by slug
-// @Tags posts
-// @Accept json
-// @Produce json
-// @Param slug path string true "Post slug"
-// @Success 200 {object} model.Post
-// @Failure 404 {object} model.ErrorResponse
-// @Failure 500 {object} model.ErrorResponse
-// @Router /posts/{slug} [get]
 func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
 	if slug == "" {
