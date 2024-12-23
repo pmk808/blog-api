@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/swaggo/swag v1.16.4
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
