@@ -1,160 +1,137 @@
-// internal/handler/post.go
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/pmk808/blog-api/internal/model"
-	"github.com/pmk808/blog-api/internal/storage"
+	"gorm.io/gorm"
 )
 
 type PostHandler struct {
-	store *storage.PostStore
+	db *gorm.DB
 }
 
-func NewPostHandler(store *storage.PostStore) *PostHandler {
+// NewPostHandler creates a new PostHandler with the provided database connection
+func NewPostHandler(db *gorm.DB) *PostHandler {
 	return &PostHandler{
-		store: store,
+		db: db,
 	}
 }
 
-func (h *PostHandler) ListPosts(w http.ResponseWriter, r *http.Request) {
-	// Get pagination parameters
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		page = 1
-	}
-
-	pageSize, _ := strconv.Atoi(r.URL.Query().Get("page_size"))
-	if pageSize < 1 || pageSize > 50 {
-		pageSize = 10
-	}
-
-	posts, err := h.store.ListPosts(r.Context(), page, pageSize)
-	if err != nil {
-		respondError(w, "Failed to fetch posts", http.StatusInternalServerError)
+func (h *PostHandler) GetPosts(c *gin.Context) {
+	var posts []model.Post
+	if result := h.db.Find(&posts); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
-
-	respondJSON(w, posts, http.StatusOK)
+	c.JSON(http.StatusOK, posts)
 }
 
-func (h *PostHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
-	if slug == "" {
-		respondError(w, "Invalid slug", http.StatusBadRequest)
+func (h *PostHandler) GetPostBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	var post model.Post
+
+	if result := h.db.Where("slug = ?", slug).First(&post); result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
 
-	var input model.PostUpdate
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	post, err := h.store.UpdatePost(r.Context(), slug, &input)
-	if err != nil {
-		respondError(w, "Failed to update post", http.StatusInternalServerError)
-		return
-	}
-
-	if post == nil {
-		respondError(w, "Post not found", http.StatusNotFound)
-		return
-	}
-
-	respondJSON(w, post, http.StatusOK)
+	c.JSON(http.StatusOK, post)
 }
 
-func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	var input model.PostCreate
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondError(w, "Invalid request body", http.StatusBadRequest)
+// CreatePost handles new post creation
+func (h *PostHandler) CreatePost(c *gin.Context) {
+	var newPost model.Post
+	if err := c.ShouldBindJSON(&newPost); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Basic validation
-	if err := validatePost(&input); err != nil {
-		respondError(w, err.Error(), http.StatusBadRequest)
+	// Validate required fields
+	if newPost.Title == "" || newPost.Slug == "" || newPost.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
 		return
 	}
 
-	post, err := h.store.CreatePost(r.Context(), &input)
-	if err != nil {
-		respondError(w, "Failed to create post", http.StatusInternalServerError)
+	// Check for existing slug
+	var existingPost model.Post
+	if result := h.db.Where("slug = ?", newPost.Slug).First(&existingPost); result.Error == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Slug already exists"})
 		return
 	}
 
-	respondJSON(w, post, http.StatusCreated)
+	if result := h.db.Create(&newPost); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, newPost)
 }
 
-func (h *PostHandler) GetPost(w http.ResponseWriter, r *http.Request) {
-	slug := chi.URLParam(r, "slug")
-	if slug == "" {
-		respondError(w, "Invalid slug", http.StatusBadRequest)
+// UpdatePost updates an existing post
+func (h *PostHandler) UpdatePost(c *gin.Context) {
+	slug := c.Param("slug")
+	var existingPost model.Post
+
+	// Find existing post
+	if result := h.db.Where("slug = ?", slug).First(&existingPost); result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
 		return
 	}
 
-	post, err := h.store.GetPost(r.Context(), slug)
-	if err != nil {
-		respondError(w, "Failed to fetch post", http.StatusInternalServerError)
+	// Bind update data
+	var updateData model.Post
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if post == nil {
-		respondError(w, "Post not found", http.StatusNotFound)
+	// Prevent slug changes
+	if updateData.Slug != "" && updateData.Slug != existingPost.Slug {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot change slug"})
 		return
 	}
 
-	respondJSON(w, post, http.StatusOK)
+	// Update fields
+	existingPost.Title = updateData.Title
+	existingPost.Content = updateData.Content
+
+	if result := h.db.Save(&existingPost); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, existingPost)
 }
 
-// validatePost performs basic validation on post input
-func validatePost(post *model.PostCreate) error {
-	if post.Title == "" {
-		return fmt.Errorf("title is required")
+// DeletePost deletes a post by slug
+func (h *PostHandler) DeletePost(c *gin.Context) {
+	slug := c.Param("slug")
+	var post model.Post
+
+	// Find post first to check existence
+	if result := h.db.Where("slug = ?", slug).First(&post); result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
 	}
 
-	if post.Intro.Question == "" || post.Intro.Hook == "" {
-		return fmt.Errorf("intro question and hook are required")
+	if result := h.db.Delete(&post); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
 	}
 
-	if len(post.Summary.Points) == 0 {
-		return fmt.Errorf("at least one TLDR point is required")
-	}
-
-	if len(post.Content.Sections) == 0 {
-		return fmt.Errorf("at least one content section is required")
-	}
-
-	if len(post.Impact.Points) == 0 {
-		return fmt.Errorf("at least one impact point is required")
-	}
-
-	if len(post.Insights.Points) == 0 {
-		return fmt.Errorf("at least one insight point is required")
-	}
-
-	return nil
-}
-
-// Helper functions for responses
-func respondJSON(w http.ResponseWriter, data interface{}, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
-}
-
-func respondError(w http.ResponseWriter, message string, status int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(model.ErrorResponse{
-		Error: message,
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Post deleted successfully"})
 }
