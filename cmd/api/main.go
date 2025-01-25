@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	// Get DB connection string from env
 	dbConn := os.Getenv("DB_CONN")
 	db, err := storage.NewDB(dbConn)
 	if err != nil {
@@ -23,34 +22,30 @@ func main() {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
-			"https://your-vercel-app.vercel.app", // Your production domain
-			"http://localhost:3000",              // Local development
+			"http://localhost:5173",
+			"https://portfolio-mc-dev.vercel.app/",
 		},
-		AllowMethods:     []string{"GET", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
 	postHandler := handler.NewPostHandler(db)
 
-	apiKey := os.Getenv("API_KEY")
-	if apiKey == "" {
-		panic("API_KEY environment variable not set")
-	}
-
-	// Public routes
+	// Routes
 	r.GET("/posts", postHandler.GetPosts)
 	r.GET("/posts/:slug", postHandler.GetPostBySlug)
 
-	// Protected routes group
+	// Protected routes
 	authorized := r.Group("/")
-	authorized.Use(middleware.APIKeyAuth(apiKey))
+	authorized.Use(middleware.APIKeyAuth(os.Getenv("API_KEY")))
 	{
 		authorized.POST("/posts", postHandler.CreatePost)
 		authorized.PUT("/posts/:slug", postHandler.UpdatePost)
 		authorized.DELETE("/posts/:slug", postHandler.DeletePost)
 	}
 
-	r.Run() // Listen on 0.0.0.0:8080
+	r.Run()
 }
