@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pmk808/blog-api/internal/handler"
+	"github.com/pmk808/blog-api/internal/middleware"
 	"github.com/pmk808/blog-api/internal/storage"
 )
 
@@ -19,11 +20,23 @@ func main() {
 	r := gin.Default()
 	postHandler := handler.NewPostHandler(db)
 
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		panic("API_KEY environment variable not set")
+	}
+
+	// Public routes
 	r.GET("/posts", postHandler.GetPosts)
 	r.GET("/posts/:slug", postHandler.GetPostBySlug)
-	r.POST("/posts", postHandler.CreatePost)
-	r.PUT("/posts/:slug", postHandler.UpdatePost)
-	r.DELETE("/posts/:slug", postHandler.DeletePost)
+
+	// Protected routes group
+	authorized := r.Group("/")
+	authorized.Use(middleware.APIKeyAuth(apiKey))
+	{
+		authorized.POST("/posts", postHandler.CreatePost)
+		authorized.PUT("/posts/:slug", postHandler.UpdatePost)
+		authorized.DELETE("/posts/:slug", postHandler.DeletePost)
+	}
 
 	r.Run() // Listen on 0.0.0.0:8080
 }

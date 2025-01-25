@@ -12,7 +12,6 @@ type PostHandler struct {
 	db *gorm.DB
 }
 
-// NewPostHandler creates a new PostHandler with the provided database connection
 func NewPostHandler(db *gorm.DB) *PostHandler {
 	return &PostHandler{
 		db: db,
