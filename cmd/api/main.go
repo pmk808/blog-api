@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/pmk808/blog-api/internal/handler"
 	"github.com/pmk808/blog-api/internal/middleware"
@@ -18,6 +20,18 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"https://your-vercel-app.vercel.app", // Your production domain
+			"http://localhost:3000",              // Local development
+		},
+		AllowMethods:     []string{"GET", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 	postHandler := handler.NewPostHandler(db)
 
 	apiKey := os.Getenv("API_KEY")
