@@ -1,101 +1,64 @@
-# Blog API Project Overview
+# Blog API
 
-A lightweight, efficient blog API backend with built-in content management capabilities.
+A lightweight blog API backend built with Go and PostgreSQL.
 
 ## Project Structure
 ```
 blog-api/
-├── cmd/
-│   └── api/
-│       └── main.go           // Application entry point
 ├── internal/
-│   ├── handler/             // HTTP handlers
-│   │   ├── post.go
-│   │   └── create.go        // Post creation handler
-│   ├── storage/             // Database operations
-│   │   ├── post.go
-│   │   └── db.go           // Database connection and queries
-│   └── model/              // Data models
-│       └── post.go         // Post model definition
-├── migrations/             // SQL migrations
-└── ui/                     // Content management interface
-    └── index.html         // Markdown editor
+│   ├── handler/            
+│   │   └── post.go         # Post handlers (CRUD operations)
+│   ├── middleware/         
+│   │   └── auth.go         # API key authentication
+│   ├── model/              
+│   │   └── post.go         # Post data model
+│   └── storage/            
+│       └── postgres.go     # Database connection and setup
+└── main.go                 # Application entry point
 ```
 
 ## Features
+- CRUD operations for blog posts
+- API key authentication for protected routes
+- PostgreSQL database integration
+- CORS support
 
-1. Blog Post Management
-   - Create, read, update, delete operations
-   - Draft/published status support
-   - Tag support
-   - Full-text search capability
-   - Markdown content support
-   - Rich text preview
-
-2. API Security
-   - Secure endpoints for content management
-   - Protected routes for modifications
-   - Environment-based configuration
-
-3. Database
-   - PostgreSQL for reliable data storage
-   - SQL migrations support
-   - Efficient querying and indexing
-
-4. API Endpoints
+## API Endpoints
 ```
-GET    /api/posts       // List posts
-GET    /api/posts/:slug // Get single post
-POST   /create         // Create post
-PUT    /posts/:slug    // Update post
-DELETE /posts/:slug    // Delete post
-GET    /api/tags       // List all tags
+GET    /posts          # List all posts
+GET    /posts/:slug    # Get post by slug
+POST   /posts          # Create post (protected)
+PUT    /posts/:slug    # Update post (protected)
+DELETE /posts/:slug    # Delete post (protected)
 ```
 
 ## Tech Stack
-- Go 1.21+
-- PostgreSQL
-- Chi router
-- Native `database/sql`
-- Server-side Markdown parsing
-
-## Content Management
-- Built-in Markdown editor
-- Real-time preview
-- Tag management
-- Draft/publish functionality
-- Direct content posting
-
-## Deployment
-- Fly.io for hosting
-- PostgreSQL on Fly.io
-- GitHub Actions for CI/CD
+- Go with Gin framework
+- PostgreSQL with GORM
+- UUID for post IDs
+- API key authentication
 
 ## Getting Started
 
 1. Prerequisites
-   - Go 1.21 or higher
-   - PostgreSQL 14+
-   - Make (optional, for using Makefile commands)
+   - Go 1.21+
+   - PostgreSQL
 
-2. Configuration
-   ```bash
-   # Set required environment variables
-   export DATABASE_URL=postgresql://user:pass@localhost:5432/blogdb
-   export BLOG_API_KEY=your-secret-key
+2. Environment Variables
+   ```
+   DB_CONN=postgresql://[user]:[password]@[host]:[port]/[dbname]
+   API_KEY=[your-api-key]
    ```
 
 3. Running Locally
    ```bash
-   # Start the server
-   go run cmd/api/main.go
+   go run main.go
    ```
 
-4. Development
-   ```bash
-   # Run migrations
-   make migrate-up
+## Deployment
+Currently deployed on Render.com with PostgreSQL database support.
 
-   # Run tests
-   make test
-   ```
+## CORS Configuration
+Configured to allow requests from:
+- `http://localhost:5174`
+- `https://portfolio-mc-dev.vercel.app`
