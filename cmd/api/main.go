@@ -23,6 +23,7 @@ func main() {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
+			"http://localhost:5173",
 			"http://localhost:5174",
 			"https://portfolio-mc-dev.vercel.app",
 		},
